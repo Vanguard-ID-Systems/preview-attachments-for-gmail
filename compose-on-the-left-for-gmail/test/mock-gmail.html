@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mock Gmail compose dock</title>
+  <script>
+    // Stand-in for the extension runtime: resolve extension paths against this server.
+    window.chrome = { runtime: { getURL: (p) => new URL(p, location.origin + '/').href } };
+  </script>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #reading { padding: 16px; }
+    /* Gmail's docked-compose strip: fixed, bottom-right, windows stacked right-to-left. */
+    .dw { position: fixed; bottom: 0; right: 0; z-index: 10; }
+    .no { display: flex; flex-direction: row-reverse; gap: 16px; margin-right: 56px; }
+    .nH.Hd { flex-shrink: 0; width: 320px; height: 220px; background: #fff; box-shadow: 0 0 8px rgba(0,0,0,.4); position: relative; }
+    .nH.Hd.expanded { width: 80vw; }
+    .dw.has-expanded { left: 10vw; right: 10vw; }
+    .hdr { height: 40px; background: #404040; color: #fff; display: flex; align-items: center; padding: 0 12px; }
+    .hdr .title { flex: 1; }
+    .hdr [role="button"] { width: 24px; height: 24px; display: inline-block; text-align: center; line-height: 24px; cursor: pointer; }
+    form { padding: 8px; }
+    #inline-reply { margin: 24px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <div id="reading">
+    <h1>Mock Gmail</h1>
+    <p>Reading pane content that the compose window used to cover.</p>
+    <div id="inline-reply">
+      <form method="POST" enctype="multipart/form-data">
+        <div role="textbox" contenteditable="true">inline reply</div>
+      </form>
+    </div>
+    <button id="add-compose" type="button">Open another compose</button>
+    <button id="expand" type="button">Toggle full-screen on compose 1</button>
+    <span id="header-clicks">0</span>
+  </div>
+
+  <div class="dw" id="dock">
+    <div class="no" id="row">
+      <!-- Compose 1: Gmail's real header icon classes -->
+      <div class="nH Hd" role="dialog" id="compose-1">
+        <div class="hdr"><span class="title">New Message</span>
+          <div class="Hl" role="button" aria-label="Minimize">_</div>
+          <div class="Hq" role="button" aria-label="Full screen">⤢</div>
+          <div class="Ha" role="button" aria-label="Save &amp; close">×</div>
+        </div>
+        <form method="POST" enctype="multipart/form-data">
+          <div role="textbox" contenteditable="true">body 1</div>
+        </form>
+      </div>
+      <!-- Compose 2: generic header buttons only (structural fallback) -->
+      <div class="nH Hd" role="dialog" id="compose-2">
+        <div class="hdr"><span class="title">Re: hello</span>
+          <div role="button" aria-label="Minimieren">_</div>
+          <div role="button" aria-label="Vollbild">⤢</div>
+          <div role="button" aria-label="Schließen">×</div>
+        </div>
+        <form method="POST" enctype="multipart/form-data">
+          <div role="textbox" contenteditable="true">body 2</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Count clicks that reach the header (the extension's button must not let any through).
+    document.querySelectorAll('.hdr').forEach((h) => h.addEventListener('click', () => {
+      const s = document.getElementById('header-clicks');
+      s.textContent = String(Number(s.textContent) + 1);
+    }));
+    document.querySelectorAll('.hdr').forEach((h) => h.addEventListener('mousedown', () => {
+      h.dataset.mousedown = '1';
+    }));
+    let n = 2;
+    document.getElementById('add-compose').addEventListener('click', () => {
+      n++;
+      const tpl = document.getElementById('compose-1').cloneNode(true);
+      tpl.id = 'compose-' + n;
+      // Like a Gmail clone: the marker attribute survives but the button is stripped.
+      tpl.querySelectorAll('.gcl-toggle').forEach((e) => e.remove());
+      document.getElementById('row').appendChild(tpl);
+    });
+    document.getElementById('expand').addEventListener('click', () => {
+      document.getElementById('compose-1').classList.toggle('expanded');
+      document.getElementById('dock').classList.toggle('has-expanded');
+    });
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

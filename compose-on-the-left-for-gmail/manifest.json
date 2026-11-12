@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Compose on the Left for Gmail",
+  "version": "0.1.0",
+  "description": "Dock Gmail's compose window to the bottom-left so the email you are reading stays visible. One click moves it back.",
+  "homepage_url": "https://github.com/Vanguard-ID-Systems/compose-on-the-left-for-gmail",
+  "minimum_chrome_version": "110",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["src/loader.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/main.js",
+        "src/selectors.js",
+        "src/dock.js",
+        "src/toggle.js"
+      ],
+      "matches": ["https://mail.google.com/*"],
+      "use_dynamic_url": true
+    }
+  ]
+}

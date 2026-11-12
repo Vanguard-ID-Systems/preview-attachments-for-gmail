@@ -1,0 +1,23 @@
+{
+  "name": "compose-on-the-left-for-gmail",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome/Edge extension: dock Gmail's compose window to the bottom-left, with a button to move it back.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vanguard-ID-Systems/compose-on-the-left-for-gmail.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node scripts/check.js",
+    "icons": "node scripts/make-icons.js",
+    "smoke": "node scripts/smoke.js",
+    "package": "node scripts/package.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

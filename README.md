@@ -9,6 +9,8 @@ A Chrome / Edge extension that adds a **preview button** to every attachment in 
 - **Nothing leaves your browser.** No permissions, no storage, no analytics. See [PRIVACY.md](PRIVACY.md).
 - No build step, no dependencies.
 
+> Also in this repository: [Compose on the Left for Gmail](compose-on-the-left-for-gmail/), a separate extension that docks the compose window to the bottom-left.
+
 ## Install
 
 **From the Chrome Web Store** — link to come.
