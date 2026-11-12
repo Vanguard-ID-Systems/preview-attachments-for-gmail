@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Preview Attachments for Gmail",
+  "version": "0.2.0",
+  "description": "Preview images, PDFs and text files attached to a Gmail draft without downloading them.",
+  "homepage_url": "https://github.com/Vanguard-ID-Systems/preview-attachments-for-gmail",
+  "minimum_chrome_version": "110",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["src/loader.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/main.js",
+        "src/selectors.js",
+        "src/capture.js",
+        "src/chips.js",
+        "src/fetcher.js",
+        "src/viewer.js",
+        "src/frame.html",
+        "src/frame.js",
+        "src/frame.css"
+      ],
+      "matches": ["https://mail.google.com/*"],
+      "use_dynamic_url": true
+    }
+  ]
+}

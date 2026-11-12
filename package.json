@@ -1,0 +1,23 @@
+{
+  "name": "preview-attachments-for-gmail",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Chrome/Edge extension: preview images, PDFs and text files attached to a Gmail draft.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vanguard-ID-Systems/preview-attachments-for-gmail.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node scripts/check.js",
+    "icons": "node scripts/make-icons.js",
+    "smoke": "node scripts/smoke.js",
+    "package": "node scripts/package.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

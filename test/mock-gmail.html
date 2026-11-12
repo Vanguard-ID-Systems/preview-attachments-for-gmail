@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mock Gmail compose</title>
+  <script>
+    // Stand-in for the extension runtime: resolve extension paths against this server.
+    window.chrome = { runtime: { getURL: (p) => new URL(p, location.origin + '/').href } };
+  </script>
+  <style>
+    .dL { display: inline-block; padding: 6px 8px; margin: 4px; border: 1px solid #ccc; }
+    .vI, .vJ { display: inline; }
+    .vq { display: inline-block; margin-left: 8px; width: 12px; }
+    .vq::before { content: "x"; }
+  </style>
+</head>
+<body>
+  <h1>Mock Gmail</h1>
+  <div id="received">
+    <span download_url="image/png:received.png:__BASE__/mail/u/0/?view=att&amp;file=test.png">received.png</span>
+    <div aria-label="Attachment: received2.png. Press enter to view"><a href="__BASE__/mail/u/0/?view=att&amp;file=test.png">received2.png</a></div>
+  </div>
+  <div role="dialog">
+    <form method="POST" enctype="multipart/form-data">
+      <div role="textbox" aria-label="Message Body" contenteditable="true">
+        hello <a id="quoted-link" href="__BASE__/mail/u/0/?view=att&amp;file=test.png">quoted attachment link in body</a>
+      </div>
+      <input id="file-input" type="file" multiple>
+      <div class="chips">
+        <!-- Real Gmail compose chip structure (Nov 2026) -->
+        <div class="dL" id="chip-remote" tabindex="-1" aria-label="Attachment: Jack headshot (3).png. Press enter to view the attachment and delete to remove it">
+          <input name="attach" type="hidden" value="#msg-a:r1_#msg-a:r1_null_-1">
+          <a class="dO" href="__BASE__/mail/u/0/?ui=2&amp;view=att&amp;disp=safe&amp;file=test.png" target="_blank"><div class="vI">Jack headshot (3).png</div> <div class="vJ">(1K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" tabindex="-1" data-tooltip="Remove attachment"></div>
+        </div>
+        <!-- Locally captured file; the link 404s on purpose -->
+        <div class="dL" id="chip-local" aria-label="Attachment: local.png. Press enter to view the attachment and delete to remove it">
+          <a class="dO" href="__BASE__/mail/u/0/?view=att&amp;disp=safe&amp;file=missing.png" target="_blank"><div class="vI">local.png</div> <div class="vJ">(1K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" data-tooltip="Remove attachment"></div>
+        </div>
+        <!-- Same name as a captured file but a different size: must bypass the local copy -->
+        <div class="dL" id="chip-mismatch" aria-label="Attachment: local.png. Press enter to view the attachment and delete to remove it">
+          <a class="dO" href="__BASE__/mail/u/0/?view=att&amp;disp=safe&amp;file=missing.png" target="_blank"><div class="vI">local.png</div> <div class="vJ">(500K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" data-tooltip="Remove attachment"></div>
+        </div>
+        <div class="dL" id="chip-pdf" aria-label="Attachment: test.pdf. Press enter to view the attachment and delete to remove it">
+          <a class="dO" href="__BASE__/mail/u/0/?view=att&amp;disp=safe&amp;file=test.pdf" target="_blank"><div class="vI">test.pdf</div> <div class="vJ">(1K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" data-tooltip="Remove attachment"></div>
+        </div>
+        <div class="dL" id="chip-error" aria-label="Attachment: nope.pdf. Press enter to view the attachment and delete to remove it">
+          <a class="dO" href="__BASE__/mail/u/0/?view=att&amp;disp=safe&amp;file=missing.pdf" target="_blank"><div class="vI">nope.pdf</div> <div class="vJ">(1K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" data-tooltip="Remove attachment"></div>
+        </div>
+        <!-- Non-English locale: no "Attachment:" label, structure only -->
+        <div class="dL" id="chip-de" aria-label="Anhang: foto.png. Drücken Sie die Eingabetaste, um den Anhang anzuzeigen">
+          <a class="dO" href="__BASE__/mail/u/0/?view=att&amp;disp=safe&amp;file=test.png" target="_blank"><div class="vI">foto.png</div> <div class="vJ">(1 K)</div></a>
+          <div role="button" aria-label="Anhang entfernen" class="vq" data-tooltip="Anhang entfernen"></div>
+        </div>
+        <!-- Off-origin link: must be decorated but never fetched -->
+        <div class="dL" id="chip-foreign" aria-label="Attachment: evil.png. Press enter to view the attachment and delete to remove it">
+          <a class="dO" href="https://attacker.example/steal?view=att" target="_blank"><div class="vI">evil.png</div> <div class="vJ">(1K)</div></a>
+          <div role="button" aria-label="Remove attachment" class="vq" data-tooltip="Remove attachment"></div>
+        </div>
+        <!-- Legacy variant: download_url attribute, no aria-label -->
+        <div class="dL" id="chip-bin" download_url="application/zip:test.zip:__BASE__/mail/u/0/?view=att&amp;file=test.zip">test.zip <div role="button" class="vq" aria-label="Remove attachment"></div></div>
+      </div>
+    </form>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

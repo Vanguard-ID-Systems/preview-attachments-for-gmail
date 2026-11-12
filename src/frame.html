@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Attachment preview</title>
+  <link rel="stylesheet" href="frame.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="meta">
+      <span class="name" id="name"></span>
+      <span class="size" id="size"></span>
+    </div>
+    <div class="actions">
+      <a class="btn" id="download" download hidden>Download</a>
+      <button class="btn" id="zoom" type="button" hidden>Actual size</button>
+      <button class="btn close" id="close" type="button" aria-label="Close preview (Esc)">&#x2715;</button>
+    </div>
+  </header>
+  <main class="stage" id="stage" aria-live="polite">
+    <p class="hint">Loading…</p>
+  </main>
+  <script src="frame.js"></script>
+</body>
+</html>
