@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — 2026-11-12
+
+Fixes from the first live-Gmail test.
+
+- Gmail's compose strip is a full-width `position: absolute` element with the windows in a `float: right` group, not a fixed container. Detection now targets the float-right ancestor and floats it left.
+- Content scripts are now plain scripts listed in the manifest instead of a loader doing a dynamic `import()`; the import could fail ("Failed to fetch dynamically imported module") and left the extension inactive.
+- Header search covers Gmail's `img` icons (`alt`/`aria-label`) and the window's positioned box, not only the dialog element.
+
 ## 0.1.0 — 2026-11-12
 
 Initial release.

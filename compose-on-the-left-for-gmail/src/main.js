@@ -1,10 +1,8 @@
-import { watchDock } from './dock.js';
-
-const TAG = '[Compose on the Left]';
-
+// Entry point. Runs after selectors.js, toggle.js and dock.js, which share this
+// classic content-script scope (no modules, no dynamic imports, nothing to fetch).
 try {
   watchDock(document);
-  console.info(TAG, 'active');
+  console.info('[Compose on the Left] active');
 } catch (err) {
-  console.error(TAG, 'failed to start', err);
+  console.error('[Compose on the Left] failed to start', err);
 }

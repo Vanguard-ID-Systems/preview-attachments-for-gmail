@@ -42,16 +42,14 @@ try {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
-// Every ES module import inside src/ must be web-accessible.
-const war = new Set((manifest.web_accessible_resources || []).flatMap((w) => w.resources || []));
+// Content scripts are classic scripts sharing one scope: no import/export allowed.
 for (const f of fs.readdirSync(path.join(root, 'src'))) {
   if (!f.endsWith('.js')) continue;
   const text = fs.readFileSync(path.join(root, 'src', f), 'utf8');
-  for (const m of text.matchAll(/from '\.\/([^']+)'/g)) {
-    if (!war.has(`src/${m[1]}`)) fail(`src/${f} imports src/${m[1]} which is not web-accessible`);
-    else ok(`src/${f} -> src/${m[1]}`);
-  }
+  if (/^\s*(import|export)\b/m.test(text)) fail(`src/${f} uses ES module syntax`);
+  else ok(`src/${f} is a classic script`);
 }
+if (manifest.web_accessible_resources) fail('no web_accessible_resources expected');
 
 if (failures) { console.error(`${failures} check(s) failed`); process.exit(1); }
 console.log('all checks passed');

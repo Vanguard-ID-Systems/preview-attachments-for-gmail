@@ -1,17 +1,12 @@
-// Finds Gmail's docked-compose strip and pins it to the left edge.
-// The side is held in memory only: 'left' on every page load, flipped by the
-// header button, never stored.
-import { SEL } from './selectors.js';
-import { decorateDialog, refreshLabels, installToggle } from './toggle.js';
+// Finds the group of docked compose windows (Gmail floats it right) and floats
+// it left instead. The side is held in memory only: 'left' on every page load,
+// flipped by the header button, never stored.
+// Classic content script: shares its top-level scope with selectors.js and toggle.js.
 
-const TAG = '[Compose on the Left]';
+const GCL_TAG = '[Compose on the Left]';
 
-const CSS = `
-[${SEL.dockAttr}] { left: 0 !important; right: auto !important; flex-direction: row !important; }
-[${SEL.dockAttr}] [${SEL.rowAttr}] {
-  float: left !important; flex-direction: row !important; justify-content: flex-start !important;
-  margin-left: 0 !important; margin-right: auto !important;
-}
+const GCL_CSS = `
+[${SEL.rowAttr}="left"] { float: left !important; margin-left: 0 !important; margin-right: auto !important; }
 .${SEL.buttonClass} {
   display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
   box-sizing: border-box; width: 24px; height: 24px; padding: 0; margin: 0 2px;
@@ -23,109 +18,115 @@ const CSS = `
 .${SEL.buttonClass}[data-fallback] { position: absolute; top: 4px; right: 104px; z-index: 1; }
 `;
 
-let side = 'left';
-const docks = new Set();
-let warned = false;
+let gclSide = 'left';
+const gclRows = new Set();
+let gclWarned = false;
 
-export const getSide = () => side;
-export function setSide(doc, next) {
-  side = next === 'right' ? 'right' : 'left';
-  refreshLabels(doc, side);
-  apply(doc);
+const getSide = () => gclSide;
+function setSide(doc, next) {
+  gclSide = next === 'right' ? 'right' : 'left';
+  refreshLabels(doc, gclSide);
+  gclApply(doc);
 }
-export const toggleSide = (doc) => setSide(doc, side === 'left' ? 'right' : 'left');
+const toggleSide = (doc) => setSide(doc, gclSide === 'left' ? 'right' : 'left');
 
-function ensureStyle(doc) {
+function gclEnsureStyle(doc) {
   if (doc.getElementById(SEL.styleId)) return;
   const style = doc.createElement('style');
   style.id = SEL.styleId;
-  style.textContent = CSS;
+  style.textContent = GCL_CSS;
   (doc.head || doc.documentElement).appendChild(style);
 }
 
-// The nearest position:fixed ancestor of a compose form, or null for inline replies.
-export function findDock(form) {
+// The nearest ancestor of a compose form that Gmail floats right: the group of
+// docked windows. null for inline replies, pop-outs and full-screen compose.
+function findRow(form) {
   const win = form.ownerDocument.defaultView;
   for (let el = form.parentElement; el && el !== form.ownerDocument.body; el = el.parentElement) {
-    if (win.getComputedStyle(el).position === 'fixed') return el;
+    if (win.getComputedStyle(el).float === 'right') return el;
   }
   return null;
 }
 
-// Full-screen compose: centred by Gmail, wider than most of the viewport.
-export function isExpanded(dialog) {
+// The element to decorate and measure for one window: the dialog's nearest
+// positioned ancestor below the row (Gmail's absolutely positioned box), or the
+// dialog itself.
+function windowBox(row, dialog) {
   const win = dialog.ownerDocument.defaultView;
-  return dialog.getBoundingClientRect().width > win.innerWidth * SEL.expandedFraction;
+  for (let el = dialog; el && el !== row; el = el.parentElement) {
+    if (win.getComputedStyle(el).position !== 'static') return el;
+  }
+  return dialog;
 }
 
-function dialogsIn(dock) {
+// Full-screen compose: centred by Gmail, wider than most of the viewport.
+function isExpanded(box) {
+  const win = box.ownerDocument.defaultView;
+  return box.getBoundingClientRect().width > win.innerWidth * SEL.expandedFraction;
+}
+
+function gclBoxesIn(row) {
   const out = [];
-  for (const form of dock.querySelectorAll(SEL.composeForm)) {
+  for (const form of row.querySelectorAll(SEL.composeForm)) {
     const d = form.closest(SEL.dialog);
-    if (d && dock.contains(d) && !out.includes(d)) out.push(d);
+    if (!d || !row.contains(d)) continue;
+    const box = windowBox(row, d);
+    if (!out.includes(box)) out.push(box);
   }
   return out;
 }
 
-function rowOf(dock, dialog) {
-  let el = dialog;
-  while (el && el.parentElement !== dock) el = el.parentElement;
-  return el;
-}
-
-function apply(doc) {
-  for (const dock of [...docks]) {
-    if (!dock.isConnected) { docks.delete(dock); continue; }
-    const dialogs = dialogsIn(dock);
-    if (!dialogs.length) { docks.delete(dock); dock.removeAttribute(SEL.dockAttr); continue; }
-    for (const d of dialogs) {
-      const row = rowOf(dock, d);
-      if (row && row !== dock) row.setAttribute(SEL.rowAttr, '');
-    }
-    const pinLeft = side === 'left' && !dialogs.some(isExpanded);
-    if (pinLeft) dock.setAttribute(SEL.dockAttr, '');
-    else dock.removeAttribute(SEL.dockAttr);
+function gclApply(doc) {
+  for (const row of [...gclRows]) {
+    if (!row.isConnected) { gclRows.delete(row); continue; }
+    const boxes = gclBoxesIn(row);
+    if (!boxes.length) { gclRows.delete(row); row.removeAttribute(SEL.rowAttr); continue; }
+    const pinLeft = gclSide === 'left' && !boxes.some(isExpanded);
+    row.setAttribute(SEL.rowAttr, pinLeft ? 'left' : 'right');
   }
-  if (side === 'left') diagnose(doc);
+  if (gclSide === 'left') gclDiagnose(doc);
 }
 
-// Log once, with sanitised markup, if the dock did not actually move.
-function diagnose(doc) {
-  if (warned) return;
+// Log once, with sanitised markup, if the windows did not actually move.
+function gclDiagnose(doc) {
+  if (gclWarned) return;
   const win = doc.defaultView;
-  for (const dock of docks) {
-    if (!dock.hasAttribute(SEL.dockAttr)) continue;
-    const stuck = dialogsIn(dock).some((d) => d.getBoundingClientRect().left > win.innerWidth / 2);
+  for (const row of gclRows) {
+    if (row.getAttribute(SEL.rowAttr) !== 'left') continue;
+    const stuck = gclBoxesIn(row).some((b) => {
+      const r = b.getBoundingClientRect();
+      return r.width > 0 && r.left > win.innerWidth / 2;
+    });
     if (!stuck) continue;
-    warned = true;
-    const html = dock.outerHTML.replace(/[\w-]{20,}/g, '…').slice(0, 4000);
-    console.warn(TAG, 'dock not moved; please report this markup:', html);
+    gclWarned = true;
+    const html = row.outerHTML.replace(/[\w-]{20,}/g, '…').slice(0, 4000);
+    console.warn(GCL_TAG, 'windows not moved; please report this markup:', html);
   }
 }
 
-function scan(doc) {
+function gclScan(doc) {
   for (const form of doc.querySelectorAll(SEL.composeForm)) {
-    const dock = findDock(form);
-    if (!dock) continue;
-    docks.add(dock);
+    const row = findRow(form);
+    if (!row) continue;
+    gclRows.add(row);
     const dialog = form.closest(SEL.dialog);
-    if (dialog && dock.contains(dialog)) decorateDialog(dialog, side);
+    if (dialog && row.contains(dialog)) decorateDialog(windowBox(row, dialog), gclSide);
   }
-  apply(doc);
+  gclApply(doc);
 }
 
-export function watchDock(doc) {
-  ensureStyle(doc);
+function watchDock(doc) {
+  gclEnsureStyle(doc);
   installToggle(doc, () => toggleSide(doc));
   let pending = false;
   const schedule = () => {
     if (pending) return;
     pending = true;
-    doc.defaultView.requestAnimationFrame(() => { pending = false; scan(doc); });
+    doc.defaultView.requestAnimationFrame(() => { pending = false; gclScan(doc); });
   };
-  scan(doc);
+  gclScan(doc);
   new MutationObserver(schedule).observe(doc.body || doc.documentElement,
     { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
   doc.defaultView.addEventListener('resize', schedule);
-  return { rescan: () => scan(doc) };
+  return { rescan: () => gclScan(doc) };
 }

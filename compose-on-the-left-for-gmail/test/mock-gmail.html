@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <title>Mock Gmail compose dock</title>
-  <script>
-    // Stand-in for the extension runtime: resolve extension paths against this server.
-    window.chrome = { runtime: { getURL: (p) => new URL(p, location.origin + '/').href } };
-  </script>
   <style>
     body { margin: 0; font-family: sans-serif; }
     #reading { padding: 16px; }
-    /* Gmail's docked-compose strip: fixed, bottom-right, windows stacked right-to-left. */
-    .dw { position: fixed; bottom: 0; right: 0; z-index: 10; }
-    .no { display: flex; flex-direction: row-reverse; gap: 16px; margin-right: 56px; }
-    .nH.Hd { flex-shrink: 0; width: 320px; height: 220px; background: #fff; box-shadow: 0 0 8px rgba(0,0,0,.4); position: relative; }
-    .nH.Hd.expanded { width: 80vw; }
-    .dw.has-expanded { left: 10vw; right: 10vw; }
+    /* Gmail's compose strip (Nov 2026): absolute, full width; windows live in a float:right group. */
+    .dw { position: absolute; left: 0; right: 0; bottom: 0; display: flex; z-index: 10; }
+    .jvV5Me { flex: 1; }
+    .lFFILd { display: flex; margin-left: 56px; margin-right: 66px; }
+    .lFFILd > .nH { flex: 1; }
+    .no.group { float: right; }
+    .nH.nn.win { float: left; position: relative; width: 328px; height: 220px; margin-left: 5px; }
+    .nH.nn.win.expanded { width: 80vw; }
+    .AD { position: absolute; left: 0; right: 0; bottom: 0; }
+    .nH.Hd { background: #fff; box-shadow: 0 0 8px rgba(0,0,0,.4); height: 220px; }
     .hdr { height: 40px; background: #404040; color: #fff; display: flex; align-items: center; padding: 0 12px; }
     .hdr .title { flex: 1; }
-    .hdr [role="button"] { width: 24px; height: 24px; display: inline-block; text-align: center; line-height: 24px; cursor: pointer; }
+    .hdr img, .hdr [role="button"] { width: 24px; height: 24px; display: inline-block; text-align: center; line-height: 24px; cursor: pointer; }
     form { padding: 8px; }
     #inline-reply { margin: 24px; border: 1px solid #ccc; }
   </style>
@@ -38,30 +38,36 @@
   </div>
 
   <div class="dw" id="dock">
-    <div class="no" id="row">
-      <!-- Compose 1: Gmail's real header icon classes -->
-      <div class="nH Hd" role="dialog" id="compose-1">
-        <div class="hdr"><span class="title">New Message</span>
-          <div class="Hl" role="button" aria-label="Minimize">_</div>
-          <div class="Hq" role="button" aria-label="Full screen">⤢</div>
-          <div class="Ha" role="button" aria-label="Save &amp; close">×</div>
-        </div>
-        <form method="POST" enctype="multipart/form-data">
-          <div role="textbox" contenteditable="true">body 1</div>
-        </form>
+    <div class="jvV5Me"><div class="nH lFFILd"><div class="nH">
+      <div class="no group" id="row">
+        <!-- Compose 1: Gmail's real header icon classes (img with alt/aria-label) -->
+        <div class="nH nn win" id="compose-1"><div class="no"><div class="nH nn"><div class="AD"><div class="nH">
+          <div class="nH Hd" role="dialog">
+            <div class="hdr"><span class="title">New Message</span>
+              <img class="Hl" alt="Minimize" aria-label="Minimize" role="button" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+              <img class="Hq" alt="Full screen" aria-label="Full screen" role="button" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+              <img class="Ha" alt="Save &amp; close" aria-label="Save &amp; close" role="button" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+              <div role="textbox" contenteditable="true">body 1</div>
+            </form>
+          </div>
+        </div></div></div></div></div>
+        <!-- Compose 2: generic header buttons only (structural fallback) -->
+        <div class="nH nn win" id="compose-2"><div class="no"><div class="nH nn"><div class="AD"><div class="nH">
+          <div class="nH Hd" role="dialog">
+            <div class="hdr"><span class="title">Re: hello</span>
+              <div role="button" aria-label="Minimieren">_</div>
+              <div role="button" aria-label="Vollbild">⤢</div>
+              <div role="button" aria-label="Schließen">×</div>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+              <div role="textbox" contenteditable="true">body 2</div>
+            </form>
+          </div>
+        </div></div></div></div></div>
       </div>
-      <!-- Compose 2: generic header buttons only (structural fallback) -->
-      <div class="nH Hd" role="dialog" id="compose-2">
-        <div class="hdr"><span class="title">Re: hello</span>
-          <div role="button" aria-label="Minimieren">_</div>
-          <div role="button" aria-label="Vollbild">⤢</div>
-          <div role="button" aria-label="Schließen">×</div>
-        </div>
-        <form method="POST" enctype="multipart/form-data">
-          <div role="textbox" contenteditable="true">body 2</div>
-        </form>
-      </div>
-    </div>
+    </div></div></div>
   </div>
 
   <script>
@@ -84,9 +90,12 @@
     });
     document.getElementById('expand').addEventListener('click', () => {
       document.getElementById('compose-1').classList.toggle('expanded');
-      document.getElementById('dock').classList.toggle('has-expanded');
     });
   </script>
-  <script type="module" src="/src/main.js"></script>
+  <!-- Same order as manifest.json content_scripts; classic scripts share one scope. -->
+  <script src="/src/selectors.js"></script>
+  <script src="/src/toggle.js"></script>
+  <script src="/src/dock.js"></script>
+  <script src="/src/main.js"></script>
 </body>
 </html>

@@ -1,27 +1,27 @@
 // The ⇄ button added to each docked compose window's header.
 // Placement, labels and the delegated click/keyboard handling live here; which
-// side the dock is on is decided by dock.js and reported through the callbacks.
-import { SEL } from './selectors.js';
+// side the windows are on is decided by dock.js and reported through callbacks.
+// Classic content script: shares its top-level scope with selectors.js and dock.js.
 
-const LABELS = {
+const GCL_LABELS = {
   left: 'Move compose window to the right side',
   right: 'Move compose window to the left side',
 };
 
-const ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">'
+const GCL_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">'
   + '<path fill="currentColor" d="M7 7l-4 4 4 4v-3h7v-2H7V7zm10 10l4-4-4-4v3h-7v2h7v3z"/></svg>';
 
 // Where to put the button: just before Gmail's own header icons.
 // 1. Class hint (fast path). 2. Structural: the first group of ≥2 clickable
-// elements sharing a parent within the top band of the dialog. 3. null → caller
+// elements sharing a parent within the top band of the window. 3. null → caller
 // falls back to absolute positioning.
-export function findHeaderSlot(dialog) {
-  const hinted = dialog.querySelector(SEL.headerButtonsHint);
+function findHeaderSlot(box) {
+  const hinted = box.querySelector(SEL.headerButtonsHint);
   if (hinted) return hinted;
 
-  const top = dialog.getBoundingClientRect().top;
+  const top = box.getBoundingClientRect().top;
   const groups = new Map();
-  for (const el of dialog.querySelectorAll(SEL.clickable)) {
+  for (const el of box.querySelectorAll(SEL.clickable)) {
     if (el.classList.contains(SEL.buttonClass)) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;
@@ -40,42 +40,38 @@ export function findHeaderSlot(dialog) {
   return best;
 }
 
-function makeButton(doc, side) {
-  const b = doc.createElement('button');
-  b.type = 'button';
-  b.className = SEL.buttonClass;
-  b.innerHTML = ICON;
-  setLabel(b, side);
-  return b;
+function gclSetLabel(button, side) {
+  button.title = GCL_LABELS[side];
+  button.setAttribute('aria-label', GCL_LABELS[side]);
 }
 
-function setLabel(button, side) {
-  button.title = LABELS[side];
-  button.setAttribute('aria-label', LABELS[side]);
-}
-
-// Adds the button to one dialog (idempotent).
-export function decorateDialog(dialog, side) {
-  // A dialog cloned by Gmail may carry the marker without the button; re-add it then.
-  if (dialog.hasAttribute(SEL.decoratedAttr) && dialog.querySelector(`.${SEL.buttonClass}`)) return;
-  dialog.setAttribute(SEL.decoratedAttr, '');
-  const button = makeButton(dialog.ownerDocument, side);
-  const slot = findHeaderSlot(dialog);
+// Adds the button to one window (idempotent). `box` is the window's outer
+// element (the dialog, or its positioned ancestor when it has one).
+function decorateDialog(box, side) {
+  // A window cloned by Gmail may carry the marker without the button; re-add it then.
+  if (box.hasAttribute(SEL.decoratedAttr) && box.querySelector(`.${SEL.buttonClass}`)) return;
+  box.setAttribute(SEL.decoratedAttr, '');
+  const button = box.ownerDocument.createElement('button');
+  button.type = 'button';
+  button.className = SEL.buttonClass;
+  button.innerHTML = GCL_ICON;
+  gclSetLabel(button, side);
+  const slot = findHeaderSlot(box);
   if (slot) {
     slot.parentElement.insertBefore(button, slot);
   } else {
     button.setAttribute('data-fallback', '');
-    dialog.appendChild(button);
+    box.appendChild(button);
   }
 }
 
-export function refreshLabels(doc, side) {
-  doc.querySelectorAll(`.${SEL.buttonClass}`).forEach((b) => setLabel(b, side));
+function refreshLabels(doc, side) {
+  doc.querySelectorAll(`.${SEL.buttonClass}`).forEach((b) => gclSetLabel(b, side));
 }
 
 // One set of delegated handlers per document, in the capture phase so Gmail's
 // header handlers (drag, minimize on click) never see the event.
-export function installToggle(doc, onToggle) {
+function installToggle(doc, onToggle) {
   const isOurs = (e) => e.target instanceof Element && e.target.closest(`.${SEL.buttonClass}`);
   const swallow = (e) => { e.preventDefault(); e.stopPropagation(); };
   doc.addEventListener('mousedown', (e) => { if (isOurs(e)) e.stopPropagation(); }, true);

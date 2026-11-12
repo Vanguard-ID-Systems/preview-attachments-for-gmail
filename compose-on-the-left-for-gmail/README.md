@@ -23,13 +23,13 @@ A Chrome / Edge extension that docks Gmail's compose window to the **bottom-left
 
 ## How it works
 
-Gmail keeps all docked compose windows in one `position: fixed` strip anchored to the bottom-right corner.
+Gmail keeps all docked compose windows in a full-width strip along the bottom of the page; inside it, the group of windows is floated right.
 
-1. `src/dock.js` finds that strip structurally: the compose form, then its nearest fixed-position ancestor. It marks the strip with a `data-gcl-dock` attribute and injects a small stylesheet that pins it to the left edge and mirrors the window order, so the newest window is nearest the edge, as on the right.
+1. `src/dock.js` finds that group structurally: the compose form, then its nearest ancestor with `float: right`. It marks the group with `data-gcl-row="left"` and injects a small stylesheet that floats it left instead.
 2. `src/toggle.js` adds the ⇄ button to each docked window's header and flips the side when clicked. The side is a variable in memory; nothing is saved.
-3. If a window is wider than 60% of the viewport (Gmail's full-screen compose), the strip is released so Gmail can centre it.
+3. If a window is wider than 60% of the viewport (Gmail's full-screen compose), the group is released so Gmail can centre it.
 
-All Gmail DOM dependencies live in `src/selectors.js`. Detection is structural; Gmail's minified class names are hints only.
+All Gmail DOM dependencies live in `src/selectors.js`. Detection is structural; Gmail's minified class names are hints only. The four files in `src/` are plain content scripts that share one scope (no modules, no dynamic imports, no web-accessible resources).
 
 ## Limitations
 
@@ -41,7 +41,7 @@ All Gmail DOM dependencies live in `src/selectors.js`. Detection is structural; 
 
 1. Reload the Gmail tab.
 2. Open DevTools (F12) → Console. You should see `[Compose on the Left] active`. If not, open `chrome://extensions`, find the extension and click **Errors**.
-3. If the message is there but the window stays on the right, the console also contains `[Compose on the Left] dock not moved` followed by the dock's HTML. Open an issue and paste it in; it almost always needs only a change to `src/selectors.js`.
+3. If the message is there but the window stays on the right, the console also contains `[Compose on the Left] windows not moved` followed by the relevant HTML. Open an issue and paste it in; it almost always needs only a change to `src/selectors.js`.
 
 ## Deploy to a Google Workspace organization
 
