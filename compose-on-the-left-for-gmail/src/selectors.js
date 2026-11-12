@@ -33,8 +33,14 @@ const SEL = {
   // full-screen compose, which is centred and must not be pushed left.
   expandedFraction: 0.6,
 
+  // The first ancestor of the row at least this wide (fraction of the viewport)
+  // is the full-width strip; everything between row and strip is pinned left.
+  stripFraction: 0.8,
+
   // Attributes and ids we add.
   rowAttr: 'data-gcl-row',
+  pinAttr: 'data-gcl-pin',
+  stripAttr: 'data-gcl-strip',
   decoratedAttr: 'data-gcl-toggled',
   buttonClass: 'gcl-toggle',
   styleId: 'gcl-style',

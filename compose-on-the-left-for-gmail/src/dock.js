@@ -6,7 +6,11 @@
 const GCL_TAG = '[Compose on the Left]';
 
 const GCL_CSS = `
-[${SEL.rowAttr}="left"] { float: left !important; margin-left: 0 !important; margin-right: auto !important; }
+[${SEL.rowAttr}="left"], [${SEL.pinAttr}="left"] {
+  float: left !important; margin-left: 0 !important; margin-right: auto !important;
+  order: -1 !important; justify-content: flex-start !important;
+}
+[${SEL.stripAttr}="left"] { justify-content: flex-start !important; }
 .${SEL.buttonClass} {
   display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
   box-sizing: border-box; width: 24px; height: 24px; padding: 0; margin: 0 2px;
@@ -48,6 +52,21 @@ function findRow(form) {
   return null;
 }
 
+// Ancestors between the row and the full-width strip (exclusive), then the strip.
+// Each of them may be what keeps the group on the right (flex alignment, auto
+// margins, floats), so all are pinned.
+function pinChain(row) {
+  const doc = row.ownerDocument;
+  const limit = doc.defaultView.innerWidth * SEL.stripFraction;
+  const chain = [];
+  let el = row.parentElement;
+  for (; el && el !== doc.body; el = el.parentElement) {
+    if (el.getBoundingClientRect().width >= limit) break;
+    chain.push(el);
+  }
+  return { chain, strip: el && el !== doc.body ? el : null };
+}
+
 // The element to decorate and measure for one window: the dialog's nearest
 // positioned ancestor below the row (Gmail's absolutely positioned box), or the
 // dialog itself.
@@ -80,9 +99,18 @@ function gclApply(doc) {
   for (const row of [...gclRows]) {
     if (!row.isConnected) { gclRows.delete(row); continue; }
     const boxes = gclBoxesIn(row);
-    if (!boxes.length) { gclRows.delete(row); row.removeAttribute(SEL.rowAttr); continue; }
-    const pinLeft = gclSide === 'left' && !boxes.some(isExpanded);
-    row.setAttribute(SEL.rowAttr, pinLeft ? 'left' : 'right');
+    if (!boxes.length) {
+      gclRows.delete(row);
+      row.removeAttribute(SEL.rowAttr);
+      row.ownerDocument.querySelectorAll(`[${SEL.pinAttr}], [${SEL.stripAttr}]`)
+        .forEach((el) => { el.removeAttribute(SEL.pinAttr); el.removeAttribute(SEL.stripAttr); });
+      continue;
+    }
+    const side = gclSide === 'left' && !boxes.some(isExpanded) ? 'left' : 'right';
+    row.setAttribute(SEL.rowAttr, side);
+    const { chain, strip } = pinChain(row);
+    chain.forEach((el) => el.setAttribute(SEL.pinAttr, side));
+    if (strip) strip.setAttribute(SEL.stripAttr, side);
   }
   if (gclSide === 'left') gclDiagnose(doc);
 }
@@ -99,8 +127,16 @@ function gclDiagnose(doc) {
     });
     if (!stuck) continue;
     gclWarned = true;
-    const html = row.outerHTML.replace(/[\w-]{20,}/g, '…').slice(0, 4000);
-    console.warn(GCL_TAG, 'windows not moved; please report this markup:', html);
+    const { chain, strip } = pinChain(row);
+    const describe = (el) => {
+      const cs = el.ownerDocument.defaultView.getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return `${el.tagName.toLowerCase()}.${[...el.classList].join('.')} display=${cs.display} float=${cs.float} `
+        + `pos=${cs.position} jc=${cs.justifyContent} ml=${cs.marginLeft} mr=${cs.marginRight} `
+        + `l=${Math.round(r.left)} w=${Math.round(r.width)} siblings=${el.parentElement ? el.parentElement.children.length : 0}`;
+    };
+    console.warn(GCL_TAG, 'windows not moved; please report this:\n'
+      + [row, ...chain, strip].filter(Boolean).map(describe).join('\n'));
   }
 }
 

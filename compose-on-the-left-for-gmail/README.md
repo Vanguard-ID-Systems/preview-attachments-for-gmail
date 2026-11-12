@@ -25,7 +25,7 @@ A Chrome / Edge extension that docks Gmail's compose window to the **bottom-left
 
 Gmail keeps all docked compose windows in a full-width strip along the bottom of the page; inside it, the group of windows is floated right.
 
-1. `src/dock.js` finds that group structurally: the compose form, then its nearest ancestor with `float: right`. It marks the group with `data-gcl-row="left"` and injects a small stylesheet that floats it left instead.
+1. `src/dock.js` finds that group structurally: the compose form, then its nearest ancestor with `float: right`. It marks the group (`data-gcl-row`) and every ancestor up to the full-width strip (`data-gcl-pin`, `data-gcl-strip`) and injects a small stylesheet that pins them to the left: float, auto margins, flex order and `justify-content`.
 2. `src/toggle.js` adds the ⇄ button to each docked window's header and flips the side when clicked. The side is a variable in memory; nothing is saved.
 3. If a window is wider than 60% of the viewport (Gmail's full-screen compose), the group is released so Gmail can centre it.
 

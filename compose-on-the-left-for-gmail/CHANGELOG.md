@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-11-12
+
+- The float-right group of windows sits inside a shrink-wrapped flex item that Gmail aligns to the right, so floating the group alone changed nothing. Every ancestor between the group and the full-width strip is now pinned left (float, auto margins, flex order, justify-content), and the strip itself gets `justify-content: flex-start`.
+- The "windows not moved" diagnostic now prints the computed layout of that chain instead of raw HTML.
+
 ## 0.1.1 — 2026-11-12
 
 Fixes from the first live-Gmail test.
