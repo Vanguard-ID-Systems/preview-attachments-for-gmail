@@ -40,18 +40,18 @@ async function main() {
   const LEFT_EDGE = 56; // Gmail's collapsed nav rail
 
   await page.goto(`${base}/test/mock-gmail.html`);
-  await page.waitForSelector('#row[data-gcl-row="left"]');
+  await page.waitForSelector('#compose-1 .gcl-toggle');
+  await page.waitForSelector('#compose-2 .gcl-toggle');
   await settle();
 
-  // Windows moved left; the first one sits right after the nav rail.
+  // Default: Gmail's layout is untouched, windows stay on the right.
   let r1 = await rect('#compose-1');
   let r2 = await rect('#compose-2');
-  assert(r1.left < LEFT_EDGE + 10 && r1.right < W / 2, `compose 1 docked at left edge (left=${r1.left})`);
-  assert(r2.left > r1.right && r2.left < W / 2, `compose 2 next to it (left=${r2.left})`);
+  assert((await rowSide()) === 'right', 'row starts on the right (Gmail default)');
+  assert(r2.right > W - 100 && r1.right < r2.left, `windows start at the right edge (right=${r2.right})`);
   const inlineBefore = await rect('#inline-reply');
   assert(inlineBefore.left > 0 && inlineBefore.top < 400, 'inline reply untouched');
   assert((await page.$$('#gcl-style')).length === 1, 'stylesheet injected once');
-  if (process.env.SCREENSHOT) await page.screenshot({ path: process.env.SCREENSHOT });
 
   // Toggle buttons: one per docked window, none on the inline reply.
   assert((await page.$$('#compose-1 .gcl-toggle')).length === 1, 'compose 1 has one toggle (class hint)');
@@ -59,43 +59,50 @@ async function main() {
   assert(await page.$eval('#compose-1 .gcl-toggle', (b) => b.nextElementSibling.classList.contains('Hl')), 'toggle inserted before the minimize icon');
   assert(await page.$eval('#compose-2 .gcl-toggle', (b) => b.parentElement.classList.contains('hdr') && !b.hasAttribute('data-fallback')), 'fallback toggle placed in header row');
   assert((await page.$$('#inline-reply .gcl-toggle')).length === 0, 'inline reply has no toggle');
-  assert(/right side/.test(await page.getAttribute('#compose-1 .gcl-toggle', 'aria-label')), 'label offers the right side');
+  assert(/left side/.test(await page.getAttribute('#compose-1 .gcl-toggle', 'aria-label')), 'label offers the left side');
 
-  // Click → everything moves right; header never sees the click or mousedown.
+  // Click → everything moves left; header never sees the click or mousedown.
   await page.click('#compose-1 .gcl-toggle');
   await settle();
   r1 = await rect('#compose-1');
   r2 = await rect('#compose-2');
-  assert((await rowSide()) === 'right', 'row attribute flipped to right');
-  assert(r2.right > W - 100 && r1.right < r2.left, `toggle moves windows back to the right edge (right=${r2.right})`);
+  assert((await rowSide()) === 'left', 'row attribute flipped to left');
+  assert(r1.left < LEFT_EDGE + 10 && r2.left > r1.right && r2.left < W / 2, `toggle moves windows to the left edge (left=${r1.left})`);
   assert((await page.textContent('#header-clicks')) === '0', 'click did not reach Gmail header');
   assert(!(await page.$eval('#compose-1 .hdr', (h) => h.dataset.mousedown)), 'mousedown did not reach Gmail header');
-  assert(/left side/.test(await page.getAttribute('#compose-2 .gcl-toggle', 'aria-label')), 'all labels updated');
+  assert(/right side/.test(await page.getAttribute('#compose-2 .gcl-toggle', 'aria-label')), 'all labels updated');
+  if (process.env.SCREENSHOT) await page.screenshot({ path: process.env.SCREENSHOT });
 
-  // New compose while on the right opens on the right and gets a button.
+  // New compose while on the left opens on the left and gets a button.
   await page.click('#add-compose');
   await page.waitForSelector('#compose-3 .gcl-toggle');
-  assert((await rect('#compose-3')).right > W - 100, 'new window follows current side (right)');
+  assert((await rect('#compose-3')).left > (await rect('#compose-2')).right && (await rect('#compose-1')).left < LEFT_EDGE + 10, 'new window follows current side (left)');
 
-  // Keyboard toggle from compose 3 → back left; the new window follows.
+  // Keyboard toggle from compose 3 → back right; Space toggles too.
   await page.focus('#compose-3 .gcl-toggle');
   await page.keyboard.press('Enter');
   await settle();
-  assert((await rect('#compose-1')).left < LEFT_EDGE + 10 && (await rect('#compose-3')).left > (await rect('#compose-2')).right, 'Enter moves windows back left');
+  assert((await rowSide()) === 'right' && (await rect('#compose-3')).right > W - 100, 'Enter moves windows back right');
   await page.keyboard.press(' ');
   await settle();
-  assert((await rowSide()) === 'right', 'Space toggles too');
-  await page.keyboard.press('Enter');
-  await settle();
+  assert((await rowSide()) === 'left', 'Space toggles too');
 
-  // Full-screen compose is left alone; collapsing restores the left dock.
+  // Full-screen compose is left alone; collapsing restores the chosen side.
   await page.click('#expand');
   await page.waitForSelector('#row[data-gcl-row="right"]');
   r1 = await rect('#compose-1');
   assert(r1.width > W * 0.6, `expanded compose releases the row (width=${r1.width})`);
   await page.click('#expand');
   await page.waitForSelector('#row[data-gcl-row="left"]');
-  assert((await rect('#compose-1')).left < LEFT_EDGE + 10, 'collapsing restores the left dock');
+  assert((await rect('#compose-1')).left < LEFT_EDGE + 10, 'collapsing restores the left side');
+
+  // One-off: closing every window resets to Gmail's default for the next one.
+  await page.click('#close-all');
+  await page.waitForFunction(() => !document.querySelector('[data-gcl-pin], [data-gcl-strip]'));
+  await page.click('#add-compose');
+  await page.waitForSelector('#compose-4 .gcl-toggle');
+  assert((await rowSide()) === 'right' && (await rect('#compose-4')).right > W - 100, 'after all windows close, the next one opens on the right again');
+  assert(/left side/.test(await page.getAttribute('#compose-4 .gcl-toggle', 'aria-label')), 'label reset too');
 
   await browser.close();
   server.close();

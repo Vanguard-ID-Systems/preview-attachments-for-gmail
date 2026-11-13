@@ -1,6 +1,7 @@
-// Finds the group of docked compose windows (Gmail floats it right) and floats
-// it left instead. The side is held in memory only: 'left' on every page load,
-// flipped by the header button, never stored.
+// Finds the group of docked compose windows (Gmail floats it right) and, on
+// request, floats it left instead. Gmail's normal right side is the default;
+// the header button flips it. The side is held in memory only and resets to
+// the right once every docked window is closed. Nothing is stored.
 // Classic content script: shares its top-level scope with selectors.js and toggle.js.
 
 const GCL_TAG = '[Compose on the Left]';
@@ -22,7 +23,7 @@ const GCL_CSS = `
 .${SEL.buttonClass}[data-fallback] { position: absolute; top: 4px; right: 104px; z-index: 1; }
 `;
 
-let gclSide = 'left';
+let gclSide = 'right';
 const gclRows = new Set();
 let gclWarned = false;
 
@@ -47,7 +48,8 @@ function gclEnsureStyle(doc) {
 function findRow(form) {
   const win = form.ownerDocument.defaultView;
   for (let el = form.parentElement; el && el !== form.ownerDocument.body; el = el.parentElement) {
-    if (win.getComputedStyle(el).float === 'right') return el;
+    // A row we already pinned left no longer floats right; recognise it by its marker.
+    if (el.hasAttribute(SEL.rowAttr) || win.getComputedStyle(el).float === 'right') return el;
   }
   return null;
 }
@@ -112,6 +114,8 @@ function gclApply(doc) {
     chain.forEach((el) => el.setAttribute(SEL.pinAttr, side));
     if (strip) strip.setAttribute(SEL.stripAttr, side);
   }
+  // One-off: once the last docked window is gone, go back to Gmail's default.
+  if (!gclRows.size && gclSide !== 'right') { gclSide = 'right'; refreshLabels(doc, gclSide); }
   if (gclSide === 'left') gclDiagnose(doc);
 }
 
@@ -121,11 +125,9 @@ function gclDiagnose(doc) {
   const win = doc.defaultView;
   for (const row of gclRows) {
     if (row.getAttribute(SEL.rowAttr) !== 'left') continue;
-    const stuck = gclBoxesIn(row).some((b) => {
-      const r = b.getBoundingClientRect();
-      return r.width > 0 && r.left > win.innerWidth / 2;
-    });
-    if (!stuck) continue;
+    // Stuck means even the leftmost window is still in the right half.
+    const lefts = gclBoxesIn(row).map((b) => b.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => r.left);
+    if (!lefts.length || Math.min(...lefts) <= win.innerWidth / 2) continue;
     gclWarned = true;
     const { chain, strip } = pinChain(row);
     const describe = (el) => {

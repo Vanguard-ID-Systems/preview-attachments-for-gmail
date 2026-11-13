@@ -1,8 +1,8 @@
 {
   "name": "compose-on-the-left-for-gmail",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
-  "description": "Chrome/Edge extension: dock Gmail's compose window to the bottom-left, with a button to move it back.",
+  "description": "Chrome/Edge extension: a button in Gmail's compose window that moves it to the bottom-left and back.",
   "license": "MIT",
   "repository": {
     "type": "git",

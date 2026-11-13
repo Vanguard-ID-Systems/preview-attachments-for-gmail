@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — 2026-11-13
+
+Behaviour change after real-world use: moving every window left was more than needed.
+
+- Compose windows now open where Gmail puts them (bottom-right). The ⇄ button in the header moves them to the left when you want that, and back again.
+- Once every docked compose window is closed, the next one opens on the right again. Nothing is remembered.
+- Fixed: a compose window opened while the others were on the left did not get the ⇄ button.
+- Fixed: the "windows not moved" console diagnostic fired wrongly when three or more windows were open.
+
 ## 0.1.2 — 2026-11-12
 
 - The float-right group of windows sits inside a shrink-wrapped flex item that Gmail aligns to the right, so floating the group alone changed nothing. Every ancestor between the group and the full-width strip is now pinned left (float, auto margins, flex order, justify-content), and the strip itself gets `justify-content: flex-start`.

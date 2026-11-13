@@ -35,6 +35,7 @@
     </div>
     <button id="add-compose" type="button">Open another compose</button>
     <button id="expand" type="button">Toggle full-screen on compose 1</button>
+    <button id="close-all" type="button">Close all compose windows</button>
     <span id="header-clicks">0</span>
   </div>
 
@@ -80,14 +81,18 @@
     document.querySelectorAll('.hdr').forEach((h) => h.addEventListener('mousedown', () => {
       h.dataset.mousedown = '1';
     }));
+    window.__tpl = document.getElementById('compose-1').cloneNode(true);
     let n = 2;
     document.getElementById('add-compose').addEventListener('click', () => {
       n++;
-      const tpl = document.getElementById('compose-1').cloneNode(true);
+      const tpl = window.__tpl.cloneNode(true);
       tpl.id = 'compose-' + n;
       // Like a Gmail clone: the marker attribute survives but the button is stripped.
       tpl.querySelectorAll('.gcl-toggle').forEach((e) => e.remove());
       document.getElementById('row').appendChild(tpl);
+    });
+    document.getElementById('close-all').addEventListener('click', () => {
+      document.querySelectorAll('#row .win').forEach((w) => w.remove());
     });
     document.getElementById('expand').addEventListener('click', () => {
       document.getElementById('compose-1').classList.toggle('expanded');

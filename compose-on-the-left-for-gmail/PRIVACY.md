@@ -1,12 +1,12 @@
 # Privacy Policy — Compose on the Left for Gmail
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-13_
 
 **Summary: this extension does not collect, store or transmit any data. Everything happens inside your browser.**
 
 ## What the extension does
 
-When a Gmail compose window opens docked at the bottom of the page, the extension moves it to the left edge and adds a button to its header that moves it back to the right.
+The extension adds a button to the header of Gmail's docked compose window. Clicking it moves the window to the left edge of the page; clicking again moves it back to the right.
 
 ## What data it accesses
 
@@ -14,7 +14,7 @@ When a Gmail compose window opens docked at the bottom of the page, the extensio
 
 ## What data it stores
 
-Nothing. The chosen side (left or right) is held in memory for the current tab only and resets when the page reloads. The extension has no settings, no local storage and no cookies.
+Nothing. The chosen side (left or right) is held in memory for the current tab only and resets when every compose window is closed or the page reloads. The extension has no settings, no local storage and no cookies.
 
 ## What data it transmits
 
